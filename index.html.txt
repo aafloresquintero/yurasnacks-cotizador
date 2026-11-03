@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cotizador YuraSnacks</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f4f0; /* Fondo arena suave */
+            color: #2c3e2d;
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1 {
+            font-size: 22px;
+            margin-bottom: 4px;
+            color: #3b5233;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #3b5233;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 12px; /* Ligeramente más grande para tocar mejor con el dedo */
+            border: 1px solid #dcdad2;
+            border-radius: 8px;
+            font-size: 16px; /* Evita zoom automático en iPhone */
+            background-color: #faf9f6;
+            box-sizing: border-box;
+        }
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .radio-label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #4a6741;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-calcular {
+            background-color: #4a6741; /* Verde oliva */
+            color: #ffffff;
+        }
+        .btn-calcular:active {
+            background-color: #3b5233;
+        }
+        .btn-copiar {
+            background-color: #d8c3a5; /* Arena oscuro / acento */
+            color: #2c3e2d;
+            display: none;
+        }
+        .btn-nuevo {
+            background-color: #e8e6df;
+            color: #555;
+            display: none;
+            font-size: 14px;
+            padding: 10px;
+        }
+        .resultado-box {
+            margin-top: 20px;
+            padding: 14px;
+            background-color: #f0f4ee;
+            border-radius: 8px;
+            border-left: 4px solid #4a6741;
+            display: none;
+        }
+        .resultado-box h3 {
+            margin: 0 0 6px 0;
+            font-size: 18px;
+            color: #3b5233;
+        }
+        .resultado-box p {
+            margin: 0;
+            font-size: 14px;
+            color: #4f5d4e;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>YuraSnacks</h1>
+    <div class="subtitle">Cotizador rápido para WhatsApp</div>
+
+    <!-- 1. Selector de producto -->
+    <div class="form-group">
+        <label for="producto">1. Selecciona el producto</label>
+        <select id="producto">
+            <option value="8" data-nombre="Barra Kiwicha y Cacao">Barra Kiwicha y Cacao (S/ 8)</option>
+            <option value="7" data-nombre="Barra Quinua Original">Barra Quinua Original (S/ 7)</option>
+            <option value="35" data-nombre="Pack x5 Kiwicha y Cacao">Pack x5 Kiwicha y Cacao (S/ 35)</option>
+            <option value="30" data-nombre="Pack x5 Quinua Original">Pack x5 Quinua Original (S/ 30)</option>
+        </select>
+    </div>
+
+    <!-- 2. Cantidad -->
+    <div class="form-group">
+        <label for="cantidad">2. Cantidad</label>
+        <input type="number" id="cantidad" value="1" min="1" inputmode="numeric" pattern="[0-9]*">
+    </div>
+
+    <!-- 3. Canal de entrega -->
+    <div class="form-group">
+        <label>3. Canal de entrega</label>
+        <div class="radio-group">
+            <label class="radio-label">
+                <input type="radio" name="entrega" value="0" checked> Recojo en punto de venta (Sin costo)
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="entrega" value="5"> Delivery en Lima (+ S/ 5.00 fijo)
+            </label>
+        </div>
+    </div>
+
+    <!-- 4. Botón Calcular -->
+    <button class="btn-calcular" onclick="calcularTotal()">Calcular Total</button>
+
+    <!-- 5. Resultado y Resumen -->
+    <div id="seccionResultado" class="resultado-box">
+        <h3 id="textoTotal">Total: S/ 0.00</h3>
+        <p id="textoResumen"></p>
+    </div>
+
+    <!-- 6. Botones de Acción Posterior -->
+    <button id="btnCopiar" class="btn-copiar" onclick="copiarResumen()">Copiar resumen para WhatsApp</button>
+    <button id="btnNuevo" class="btn-nuevo" onclick="reiniciarCotizador()">🔄 Nuevo cálculo</button>
+</div>
+
+<script>
+    let mensajeWhatsApp = "";
+
+    function calcularTotal() {
+        const selectProducto = document.getElementById('producto');
+        const precioUnitario = parseFloat(selectProducto.value);
+        const nombreProducto = selectProducto.options[selectProducto.selectedIndex].getAttribute('data-nombre');
+        
+        let inputCantidad = document.getElementById('cantidad');
+        let cantidad = parseInt(inputCantidad.value);
+        
+        // Blindaje anti-errores: Si borran el campo o ponen un número menor a 1, lo forzamos a 1
+        if (isNaN(cantidad) || cantidad < 1) {
+            cantidad = 1;
+            inputCantidad.value = 1;
+        }
+        
+        const radioEntrega = document.querySelector('input[name="entrega"]:checked');
+        const costoEntrega = radioEntrega ? parseFloat(radioEntrega.value) : 0;
+        const nombreEntrega = costoEntrega > 0 ? "Delivery en Lima" : "Recojo en punto de venta";
+
+        const subtotal = precioUnitario * cantidad;
+        const total = subtotal + costoEntrega;
+
+        document.getElementById('textoTotal').innerText = `Total: S/ ${total.toFixed(2)}`;
+        
+        // Formato exacto solicitado
+        mensajeWhatsApp = `Pedido: ${cantidad} x ${nombreProducto}, canal: ${nombreEntrega}, total: S/ ${total.toFixed(2)}`;
+        
+        document.getElementById('textoResumen').innerText = `Detalle: ${cantidad}x ${nombreProducto}\nCanal: ${nombreEntrega}`;
+
+        document.getElementById('seccionResultado').style.display = 'block';
+        document.getElementById('btnCopiar').style.display = 'block';
+        document.getElementById('btnNuevo').style.display = 'block';
+    }
+
+    function copiarResumen() {
+        if (!mensajeWhatsApp) return;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(mensajeWhatsApp).then(() => {
+                feedbackCopiado();
+            }).catch(() => {
+                fallbackCopiarTexto(mensajeWhatsApp);
+            });
+        } else {
+            fallbackCopiarTexto(mensajeWhatsApp);
+        }
+    }
+
+    function feedbackCopiado() {
+        const btn = document.getElementById('btnCopiar');
+        const textoOriginal = btn.innerText;
+        btn.innerText = "¡Copiado al portapapeles! ✓";
+        btn.style.backgroundColor = "#a3b19b";
+        
+        setTimeout(() => {
+            btn.innerText = textoOriginal;
+            btn.style.backgroundColor = "#d8c3a5";
+        }, 2000);
+    }
+
+    function fallbackCopiarTexto(texto) {
+        let textarea = document.createElement("textarea");
+        textarea.value = texto;
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            feedbackCopiado();
+        } catch (err) {
+            alert("No se pudo copiar automáticamente. Selecciónalo y cópialo manualmente: \n\n" + texto);
+        }
+        document.body.removeChild(textarea);
+    }
+
+    function reiniciarCotizador() {
+        document.getElementById('cantidad').value = "1";
+        document.getElementById('producto').selectedIndex = 0;
+        document.querySelector('input[name="entrega"][value="0"]').checked = true;
+        document.getElementById('seccionResultado').style.display = 'none';
+        document.getElementById('btnCopiar').style.display = 'none';
+        document.getElementById('btnNuevo').style.display = 'none';
+        mensajeWhatsApp = "";
+    }
+</script>
+
+</body>
+</html>
